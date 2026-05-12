@@ -1,0 +1,23 @@
+{
+  "name": "av_webii",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/dvaaz/av_webII#readme",
+  "bugs": {
+    "url": "https://github.com/dvaaz/av_webII/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dvaaz/av_webII.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "fastify": "^5.8.5"
+  }
+}
