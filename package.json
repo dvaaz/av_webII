@@ -6,6 +6,9 @@
   "bugs": {
     "url": "https://github.com/dvaaz/av_webII/issues"
   },
+  "workspaces": [
+    "apps/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dvaaz/av_webII.git"
@@ -19,5 +22,8 @@
   },
   "dependencies": {
     "fastify": "^5.8.5"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }
