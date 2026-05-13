@@ -1,45 +1,53 @@
-Branch 01
+# Branch 02
  
-Passo 1 — Configuração do Monorepo
-Vamos começar a AV Prática de microserviços com Node.js!
-Neste passo você vai configurar a estrutura base do projeto usando npm workspaces, uma funcionalidade nativa do npm que permite gerenciar múltiplos pacotes em um único repositório (monorepo).
+Passo 2 — Product Service
+Neste passo você vai criar o primeiro microserviço real: o Product Service. Ele é responsável exclusivamente pelo catálogo de produtos, expondo uma API REST com Fastify.
 
 Objetivo deste passo
-Criar o esqueleto do projeto onde cada microserviço terá sua própria pasta, package.json e configuração TypeScript independente, mas compartilhando a raiz do repositório.
+Construir um servidor HTTP com Fastify que responde a requisições sobre produtos. O foco está em entender a estrutura de um serviço isolado antes de conectá-lo a outros.
 
-O que será criado
-/
-├── package.json          ← raiz do monorepo (workspaces)
-├── tsconfig.json         ← configuração TypeScript base
-└── apps/
-    └── product-service/
-        ├── package.json  ← dependências isoladas do serviço
-        └── tsconfig.json ← herda da raiz, sobrescreve outDir
+O que será adicionado
+apps/
+└── product-service/
+    └── src/
+        └── server.ts   ← servidor Fastify com rotas de produtos
  
 
-Por que Monorepo?
-Em vez de ter repositórios separados para cada serviço, o monorepo permite:
-Compartilhar código entre serviços (ex: tipos, utilitários)
-Um único npm install na raiz instala tudo
-Versionamento unificado — todos os serviços evoluem juntos no mesmo histórico Git
-
-
-
-
-npm Workspaces
-O campo "workspaces" no package.json raiz instrui o npm a reconhecer todas as pastas dentro de apps/ como pacotes independentes:
-{
-  "workspaces": ["apps/*"]
+Entendendo o código
+1. Tipagem com TypeScript
+Definimos uma interface para garantir que todos os produtos tenham a mesma estrutura:
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  stock: number;
 }
-Isso significa que cada serviço tem seu próprio package.json com dependências isoladas.
+Por que isso importa? Em um sistema com múltiplos serviços, contratos claros de dados evitam bugs silenciosos quando um serviço muda sua estrutura.
 
-TypeScript Base
-O tsconfig.json raiz define as regras que todos os serviços herdarão. Cada serviço tem seu próprio tsconfig.json que usa "extends" para reaproveitar essas configurações:
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
-  }
-}
+
+2. Dados em memória
+Por enquanto, os produtos são armazenados em um array em memória. Isso é intencional — o foco é na estrutura do serviço, não no banco de dados.
+const products: Product[] = [
+  { id: 1, name: 'Notebook Pro', price: 3500, stock: 10 },
+  ...
+];
+3. Rotas REST
+Duas rotas simples:
+GET /products — retorna todos os produtos
+GET /products/:id — retorna um produto pelo ID, ou 404 se não existir
+4. Porta dedicada
+O serviço escuta na porta 3001. Em microserviços, cada serviço tem sua própria porta (ou container). Isso permite escalar cada serviço de forma independente.
+app.listen({ port: 3001, host: '0.0.0.0' });
+O host: '0.0.0.0' é necessário para que o serviço seja acessível dentro de um container Docker no futuro.
+
+Como executar
+# Na raiz do projeto, instale as dependências
+npm install
+ 
+# Execute o product-service
+npm run product
+Teste com curl ou navegador:
+curl http://localhost:3001/products
+curl http://localhost:3001/products/1
+curl http://localhost:3001/products/999  # retorna 404
 
