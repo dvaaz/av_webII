@@ -22,8 +22,8 @@ export interface UpdateProductStock{
 export interface ProductRepository{
     create(data: CreateProduct): Promise<Product>;
     findAll(): Promise<Product[]>;
-    findById(id: string): Promise<Product | null>;
-    findByUserId(userId: string): Promise<Product[]>;
-    update(id: string, data: UpdateProductPrice | UpdateProductStock): Promise<Product>;
-    delete(id: string): Promise<Product>;
+    findById(id: number): Promise<Product | null>;
+    findByUserId(userId: number): Promise<Product[]>;
+    update(id: number, data: UpdateProductPrice | UpdateProductStock): Promise<Product>;
+    delete(id: number): Promise<Product>;
 }
