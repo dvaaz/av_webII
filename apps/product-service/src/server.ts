@@ -17,8 +17,8 @@ fastify.get('/t', async function handler (request, reply) {
 // Produtos
 const products: Product[] = [
   { id: 1, name: 'Notebook Pro',     price: 3500, stock: 10 },
-  { id: 2, name: 'Mouse Gamer',      price: 250,  stock: 50 },
-  { id: 3, name: 'Teclado Mecânico', price: 400,  stock: 30 },
+  { id: 2, name: 'Mickey Mouse Mouse',      price: 150,  stock: 150 },
+  { id: 3, name: 'Teclado Mecânico Sem Led', price: 400,  stock: 20 },
 ];
 
 fastify.get('/products', async () => products);
