@@ -1,79 +1,70 @@
-# Branch 04
+# Branch 05
  
-* Passo 4 — Comunicação HTTP entre Serviços
-Neste passo você vai fazer o Order Service consultar o Product Service via HTTP para obter os detalhes do produto ao criar um pedido.
+* Passo 5 — API Gateway
+Neste passo você vai criar o API Gateway: o ponto de entrada único para todos os clientes externos. Em vez de o frontend chamar localhost:3001 e localhost:3002 diretamente, ele fala apenas com o gateway na porta 3000.
 
 Objetivo deste passo
-Implementar a comunicação síncrona entre microserviços usando HTTP/REST nativo (fetch). Entender os trade-offs desse modelo e como usar variáveis de ambiente para tornar as URLs configuráveis.
+Implementar um API Gateway com Fastify que roteia requisições para os serviços internos corretos, sem que o cliente precise conhecer a topologia interna do sistema.
 
-O que mudou
-O arquivo apps/order-service/src/server.ts foi atualizado. As principais diferenças em relação ao passo anterior:
-Antes (step 03)
-Agora (step 04)
-Order salva só productId
-Order salva productName e total
-Nenhuma chamada externa
-Chama GET /products/:id no Product Service
-URL hardcoded inexistente
-URL lida de variável de ambiente
-
+O que será adicionado
+apps/
+└── api-gateway/
+    ├── package.json    ← inclui @fastify/http-proxy
+    ├── tsconfig.json
+    └── src/
+        └── server.ts   ← gateway na porta 3000
+ 
 
 Entendendo o código
-1. URL configurável por variável de ambiente
-const PRODUCT_SERVICE_URL =
-  process.env.PRODUCT_SERVICE_URL || 'http://localhost:3001';
-Em desenvolvimento, usa localhost:3001. Em produção com Docker, a variável de ambiente apontará para o nome do container (http://product-service:3001). Essa é a forma correta de configurar URLs em microserviços.
-2. A chamada HTTP
-const response = await fetch(`${PRODUCT_SERVICE_URL}/products/${productId}`);
+1. Plugin @fastify/http-proxy
+O plugin faz o proxy reverso: recebe a requisição no gateway e a encaminha para o serviço correto, repassando body, headers e retornando a resposta original.
+app.register(httpProxy, {
+  upstream: PRODUCT_SERVICE,   // para onde encaminhar
+  prefix: '/products',         // qual prefixo de rota capturar
+  rewritePrefix: '/products',  // prefixo mantido na URL encaminhada
+});
+2. Rota de health check
+app.get('/health', async () => ({
+  status: 'ok',
+  timestamp: new Date().toISOString(),
+}));
+É uma boa prática ter um endpoint /health no gateway para monitoramento e orquestradores como o Kubernetes verificarem se o serviço está vivo.
+3. Arquitetura com gateway
+Cliente (frontend / curl)
+        │
+        ▼
+   :3000 API Gateway
+   ├── /products/* ──► :3001 Product Service
+   ├── /orders/*   ──► :3002 Order Service
+   └── /health     ──► resposta local
  
-if (!response.ok) {
-  return reply.status(404).send({ error: 'Produto não encontrado no Product Service' });
-}
- 
-const product = await response.json() as Product;
-O fetch nativo (disponível no Node.js 18+) é usado para chamar o Product Service. Se o produto não existe, o Order Service retorna 404 — propagando o erro do serviço de origem.
-3. Pedido enriquecido
-const order: Order = {
-  id: nextId++,
-  productId,
-  productName: product.name,   // vem do Product Service
-  quantity,
-  total: product.price * quantity,  // calculado com o preço real
-  createdAt: new Date().toISOString(),
-};
 
-Testando a comunicação
-Com os dois serviços rodando em terminais separados:
+Como executar os três serviços
+Abra três terminais:
 # Terminal 1
 npm run product
  
 # Terminal 2
 npm run order
-Crie um pedido:
-curl -X POST http://localhost:3002/orders \
+ 
+# Terminal 3
+npm run gateway
+Agora todas as chamadas passam pelo gateway:
+# Listar produtos (via gateway → product-service)
+curl http://localhost:3000/products
+ 
+# Criar pedido (via gateway → order-service → product-service)
+curl -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
-  -d '{"productId": 1, "quantity": 3}'
-Resposta esperada:
-{
-  "id": 1,
-  "productId": 1,
-  "productName": "Notebook Pro",
-  "quantity": 3,
-  "total": 10500,
-  "createdAt": "2024-01-01T00:00:00.000Z"
-}
-Teste com um produto inexistente:
-curl -X POST http://localhost:3002/orders \
-  -H "Content-Type: application/json" \
-  -d '{"productId": 999, "quantity": 1}'
+  -d '{"productId": 2, "quantity": 5}'
+ 
+# Health check
+curl http://localhost:3000/health
 
-Trade-offs da comunicação síncrona
-Vantagens:
-Simples de implementar e entender
-Resposta imediata com confirmação
-Desvantagens:
-Se o Product Service cair, o Order Service falha junto
-Aumenta o acoplamento entre serviços
-Latência acumulada em chamadas encadeadas
-Em sistemas mais robustos, comunicação assíncrona (filas como RabbitMQ) resolve esses problemas — mas foge do escopo dessa AV.
+Por que o API Gateway é importante?
+Ponto único de entrada: o cliente nunca acessa serviços internos diretamente
+SSL termination: o certificado HTTPS fica só no gateway
+Autenticação centralizada: middleware de JWT/auth pode ser adicionado aqui
+Rate limiting e logging: aplicados uma única vez para todos os serviços
+Flexibilidade interna: serviços podem mudar de porta ou endereço sem impactar o cliente
 

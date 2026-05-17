@@ -23,7 +23,8 @@
     "dev": "tsx --watch src/server.ts",
   
     "product": "npm run dev --workspace=apps/product-service",
-    "order": "npm run dev --workspace=apps/order-service"
+    "order": "npm run dev --workspace=apps/order-service",
+    "gateway": "npm run dev --workspace=apps/api-gateway"
   
   },
   "dependencies": {
