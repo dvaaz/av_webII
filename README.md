@@ -1,57 +1,79 @@
-# Branch 03 
+# Branch 04
  
-Passo 3 — Order Service
-Neste passo você vai criar o segundo microserviço: o Order Service. Ele gerencia pedidos de forma completamente independente do Product Service — por enquanto.
+* Passo 4 — Comunicação HTTP entre Serviços
+Neste passo você vai fazer o Order Service consultar o Product Service via HTTP para obter os detalhes do produto ao criar um pedido.
 
 Objetivo deste passo
-Entender que cada microserviço é um processo separado, com sua própria porta, suas próprias dependências e seus próprios dados. O Order Service ainda não sabe nada sobre produtos — e isso é intencional.
+Implementar a comunicação síncrona entre microserviços usando HTTP/REST nativo (fetch). Entender os trade-offs desse modelo e como usar variáveis de ambiente para tornar as URLs configuráveis.
 
-O que será adicionado
-apps/
-└── order-service/
-    ├── package.json    ← dependências isoladas
-    ├── tsconfig.json   ← herda configurações da raiz
-    └── src/
-        └── server.ts   ← servidor Fastify na porta 3002
- 
+O que mudou
+O arquivo apps/order-service/src/server.ts foi atualizado. As principais diferenças em relação ao passo anterior:
+Antes (step 03)
+Agora (step 04)
+Order salva só productId
+Order salva productName e total
+Nenhuma chamada externa
+Chama GET /products/:id no Product Service
+URL hardcoded inexistente
+URL lida de variável de ambiente
+
 
 Entendendo o código
-1. Serviço isolado na porta 3002
-Enquanto o Product Service usa a porta 3001, o Order Service usa a 3002. Dois processos Node.js rodando simultaneamente, totalmente independentes.
-2. Interface do pedido
-interface Order {
-  id: number;
-  productId: number;  // só guarda o ID — ainda não busca detalhes
-  quantity: number;
-  createdAt: string;
+1. URL configurável por variável de ambiente
+const PRODUCT_SERVICE_URL =
+  process.env.PRODUCT_SERVICE_URL || 'http://localhost:3001';
+Em desenvolvimento, usa localhost:3001. Em produção com Docker, a variável de ambiente apontará para o nome do container (http://product-service:3001). Essa é a forma correta de configurar URLs em microserviços.
+2. A chamada HTTP
+const response = await fetch(`${PRODUCT_SERVICE_URL}/products/${productId}`);
+ 
+if (!response.ok) {
+  return reply.status(404).send({ error: 'Produto não encontrado no Product Service' });
 }
-Perceba que o pedido só armazena o productId. Ele ainda não busca o nome ou preço do produto. Isso será corrigido no próximo passo.
-3. Rota POST tipada
-app.post<{ Body: { productId: number; quantity: number } }>('/orders', async (req, reply) => {
-  // req.body é tipado automaticamente pelo Fastify + TypeScript
-});
-O Fastify permite tipar Body, Params, Querystring e Headers via generics, evitando any.
+ 
+const product = await response.json() as Product;
+O fetch nativo (disponível no Node.js 18+) é usado para chamar o Product Service. Se o produto não existe, o Order Service retorna 404 — propagando o erro do serviço de origem.
+3. Pedido enriquecido
+const order: Order = {
+  id: nextId++,
+  productId,
+  productName: product.name,   // vem do Product Service
+  quantity,
+  total: product.price * quantity,  // calculado com o preço real
+  createdAt: new Date().toISOString(),
+};
 
-Problema visível neste passo
-Crie um pedido e veja o que acontece:
-curl -X POST http://localhost:3002/orders \
-  -H "Content-Type: application/json" \
-  -d '{"productId": 1, "quantity": 2}'
-Resposta:
-{
-  "id": 1,
-  "productId": 1,
-  "quantity": 2,
-  "createdAt": "2024-01-01T00:00:00.000Z"
-}
-O pedido foi criado, mas não sabemos qual produto foi pedido nem qual o valor total. O Order Service está isolado demais — ele precisa conversar com o Product Service.
-Essa é exatamente a tensão central dos microserviços: isolamento vs. colaboração.
-
-Como executar os dois serviços juntos
-Abra dois terminais:
+Testando a comunicação
+Com os dois serviços rodando em terminais separados:
 # Terminal 1
 npm run product
  
 # Terminal 2
 npm run order
+Crie um pedido:
+curl -X POST http://localhost:3002/orders \
+  -H "Content-Type: application/json" \
+  -d '{"productId": 1, "quantity": 3}'
+Resposta esperada:
+{
+  "id": 1,
+  "productId": 1,
+  "productName": "Notebook Pro",
+  "quantity": 3,
+  "total": 10500,
+  "createdAt": "2024-01-01T00:00:00.000Z"
+}
+Teste com um produto inexistente:
+curl -X POST http://localhost:3002/orders \
+  -H "Content-Type: application/json" \
+  -d '{"productId": 999, "quantity": 1}'
+
+Trade-offs da comunicação síncrona
+Vantagens:
+Simples de implementar e entender
+Resposta imediata com confirmação
+Desvantagens:
+Se o Product Service cair, o Order Service falha junto
+Aumenta o acoplamento entre serviços
+Latência acumulada em chamadas encadeadas
+Em sistemas mais robustos, comunicação assíncrona (filas como RabbitMQ) resolve esses problemas — mas foge do escopo dessa AV.
 

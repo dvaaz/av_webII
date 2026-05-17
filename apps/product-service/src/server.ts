@@ -1,6 +1,5 @@
 // configuraçcoes de fastfy
 import Fastify from 'fastify'; 
-import type { FastifyInstance } from 'fastify';
 import type { Product } from './interfaces/product.interface.js';
 
 
