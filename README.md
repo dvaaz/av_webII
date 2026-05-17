@@ -1,70 +1,89 @@
-# Branch 05
+## Branch 06
  
-* Passo 5 — API Gateway
-Neste passo você vai criar o API Gateway: o ponto de entrada único para todos os clientes externos. Em vez de o frontend chamar localhost:3001 e localhost:3002 diretamente, ele fala apenas com o gateway na porta 3000.
+Passo 6 — Docker e docker-compose
+Neste passo você vai containerizar todos os serviços com Docker e orquestrá-los com docker-compose. O objetivo é que todo o sistema suba com um único comando, em um ambiente isolado e reproduzível.
 
 Objetivo deste passo
-Implementar um API Gateway com Fastify que roteia requisições para os serviços internos corretos, sem que o cliente precise conhecer a topologia interna do sistema.
+Empacotar cada microserviço em uma imagem Docker e definir como os containers se comunicam entre si usando a rede interna do docker-compose.
 
 O que será adicionado
-apps/
-└── api-gateway/
-    ├── package.json    ← inclui @fastify/http-proxy
-    ├── tsconfig.json
-    └── src/
-        └── server.ts   ← gateway na porta 3000
+/
+├── docker-compose.yml              ← orquestra os 3 serviços
+└── apps/
+    ├── product-service/Dockerfile
+    ├── order-service/Dockerfile
+    └── api-gateway/Dockerfile
  
 
-Entendendo o código
-1. Plugin @fastify/http-proxy
-O plugin faz o proxy reverso: recebe a requisição no gateway e a encaminha para o serviço correto, repassando body, headers e retornando a resposta original.
-app.register(httpProxy, {
-  upstream: PRODUCT_SERVICE,   // para onde encaminhar
-  prefix: '/products',         // qual prefixo de rota capturar
-  rewritePrefix: '/products',  // prefixo mantido na URL encaminhada
-});
-2. Rota de health check
-app.get('/health', async () => ({
-  status: 'ok',
-  timestamp: new Date().toISOString(),
-}));
-É uma boa prática ter um endpoint /health no gateway para monitoramento e orquestradores como o Kubernetes verificarem se o serviço está vivo.
-3. Arquitetura com gateway
-Cliente (frontend / curl)
-        │
-        ▼
-   :3000 API Gateway
-   ├── /products/* ──► :3001 Product Service
-   ├── /orders/*   ──► :3002 Order Service
-   └── /health     ──► resposta local
+Entendendo o Dockerfile (multi-stage build)
+Todos os serviços usam o mesmo padrão de multi-stage build:
+# Stage 1: build — compila TypeScript
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
  
+# Stage 2: produção — apenas o JS compilado + deps de produção
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY --from=builder /app/dist ./dist
+EXPOSE 3001
+CMD ["node", "dist/server.js"]
+Por que dois stages?
+O stage de build instala devDependencies (TypeScript, ts-node) que não são necessárias em produção. O stage final copia apenas o dist/ compilado e instala somente as dependências de produção. A imagem final fica muito menor.
 
-Como executar os três serviços
-Abra três terminais:
-# Terminal 1
-npm run product
+Entendendo o docker-compose.yml
+Rede interna
+O docker-compose cria automaticamente uma rede privada entre os containers. Dentro dessa rede, cada serviço é acessível pelo seu nome (ex: product-service), não por localhost.
+Variáveis de ambiente por container
+order-service:
+  environment:
+    - PRODUCT_SERVICE_URL=http://product-service:3001
+Note como a URL usa product-service (nome do container) em vez de localhost. É por isso que o código usa process.env.PRODUCT_SERVICE_URL — em dev é localhost, em Docker é o nome do serviço.
+depends_on
+api-gateway:
+  depends_on:
+    - product-service
+    - order-service
+Garante que o gateway só inicia após os outros serviços estarem criados (não garante que estão prontos para receber tráfego, mas é o suficiente para este tutorial).
+
+Como executar com Docker
+# Build e inicializa todos os serviços
+docker-compose up --build
  
-# Terminal 2
-npm run order
- 
-# Terminal 3
-npm run gateway
-Agora todas as chamadas passam pelo gateway:
-# Listar produtos (via gateway → product-service)
+# Em outro terminal, teste o sistema completo
 curl http://localhost:3000/products
+curl http://localhost:3000/health
  
-# Criar pedido (via gateway → order-service → product-service)
 curl -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
-  -d '{"productId": 2, "quantity": 5}'
+  -d '{"productId": 1, "quantity": 2}'
  
-# Health check
-curl http://localhost:3000/health
+# Para encerrar
+docker-compose down
 
-Por que o API Gateway é importante?
-Ponto único de entrada: o cliente nunca acessa serviços internos diretamente
-SSL termination: o certificado HTTPS fica só no gateway
-Autenticação centralizada: middleware de JWT/auth pode ser adicionado aqui
-Rate limiting e logging: aplicados uma única vez para todos os serviços
-Flexibilidade interna: serviços podem mudar de porta ou endereço sem impactar o cliente
+Comparativo: dev vs Docker
+Aspecto
+Desenvolvimento
+Docker
+Inicialização
+3 terminais separados
+docker-compose up
+URL entre serviços
+localhost:300X
+nome do container
+Compilação
+ts-node (direto)
+tsc → node dist/
+Isolamento
+Processo local
+Container isolado
+
+
+
 
