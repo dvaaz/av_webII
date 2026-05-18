@@ -1,38 +1,30 @@
-# syntax=docker/dockerfile:1
-
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Dockerfile reference guide at
-# https://docs.docker.com/go/dockerfile-reference/
-
-# Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
-
-ARG NODE_VERSION=22.21.0
-
-FROM node:${NODE_VERSION}-alpine
-
-# Use production node environment by default.
-ENV NODE_ENV production
-
-
-WORKDIR /usr/src/app
-
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.npm to speed up subsequent builds.
-# Leverage a bind mounts to package.json and package-lock.json to avoid having to copy them into
-# into this layer.
-RUN --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=package-lock.json,target=package-lock.json \
-    --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
-
-# Run the application as a non-root user.
-USER node
-
-# Copy the rest of the source files into the image.
-COPY . .
-
-# Expose the port that the application listens on.
+# Stage 1: build — compila TypeScript
+# Utiliza uma imagem base do Node.js para a fase de construção
+FROM node:20-alpine AS builder 
+# Establece o diretório de trabalho
+WORKDIR /app
+# Copia os arquivos de configuração e dependências para o contêiner
+COPY package*.json ./
+# Instala as dependências do projeto
+RUN npm install
+# Copia os arquivos de configuração do TypeScript e o código-fonte para o contêiner
+COPY tsconfig.json ./
+# Compila o código TypeScript para JavaScript
+COPY src ./src
+# Executa o comando de build para compilar o código TypeScript
+RUN npm run build
+# # # # # # # # # #
+# Stage 2: produção — apenas o JS compilado + deps de produção
+FROM node:20-alpine
+# Establece o diretório de trabalho para a fase de produção
+WORKDIR /app
+# Copia os arquivos de configuração e dependências para o contêiner
+COPY package*.json ./
+# Instala apenas as dependências de produção, omitindo as dependências de desenvolvimento
+RUN npm install --omit=dev
+# Copia os arquivos compilados do estágio de construção para o estágio de produção
+COPY --from=builder /app/dist ./dist
+# Expõe a porta 3001 para que o servidor possa ser acessado externamente
 EXPOSE 3001
-
-# Run the application.
-CMD node index.js
+# Define o comando de entrada para iniciar o servidor Node.js
+CMD ["node", "dist/server.js"]

@@ -7,17 +7,43 @@
 # You can add other services your application may depend on here, such as a
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
+version: '3.8'
+
 services:
-  server:
+  product-service:
     build:
       context: .
+      dockerfile: apps/product-service/Dockerfile
+    # Sem porta.  protegido do mundo externo.
     environment:
-      NODE_ENV: production
-    ports:
-      - 3001:3001
+    # plano, utilizar porta diferente da externa
+      - PORT=3000
 
-# The commented out section below is an example of how to define a PostgreSQL
-# database that your application can use. `depends_on` tells Docker Compose to
+  order-service:
+    build:
+      context: .
+      dockerfile: apps/order-service/Dockerfile
+    #Sem porta, já que o docker pode comunicar-se independente do mundo externo.
+    environment:
+      - PORT=3000
+      - PRODUCT_SERVICE_URL=http://product-service:3000
+    depends_on:
+      - product-service
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    ports:
+      - "3000:3001" # Port aberta -> Acessa na 3000, Plano é que a escuta na 3001 interna.
+    environment:
+      - PORT=3001
+      - PRODUCT_SERVICE=http://product-service:3000 # Aponta para a porta INTERNA do container
+      - ORDER_SERVICE=http://order-service:3000   # Aponta para a porta INTERNA do container
+    depends_on:
+      - product-service
+      - order-service 
+    # database that your application can use. `depends_on` tells Docker Compose to
 # start the database before your application. The `db-data` volume persists the
 # database data between container restarts. The `db-password` secret is used
 # to set the database password. You must create `db/password.txt` and add
