@@ -83,7 +83,3 @@ tsc → node dist/
 Isolamento
 Processo local
 Container isolado
-
-
-
-
