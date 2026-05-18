@@ -9,7 +9,6 @@
   "workspaces": [
     "apps/*"
   ],
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dvaaz/av_webII.git"
@@ -21,16 +20,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx --watch src/server.ts",
-  
     "product": "npm run dev --workspace=apps/product-service",
     "order": "npm run dev --workspace=apps/order-service",
     "gateway": "npm run dev --workspace=apps/api-gateway"
-  
   },
   "dependencies": {
     "fastify": "^5.8.5"
   },
   "devDependencies": {
+    "@types/node": "^25.9.0",
     "typescript": "^6.0.3"
   }
 }

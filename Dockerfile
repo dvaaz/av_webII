@@ -1,30 +1,40 @@
-# Stage 1: build — compila TypeScript
-# Utiliza uma imagem base do Node.js para a fase de construção
-FROM node:20-alpine AS builder 
-# Establece o diretório de trabalho
+# **************************************************************** #
+# Stage 1: build — compila TypeScript baseado no workspace ativo   #
+# **************************************************************** #
+FROM node:20-alpine AS builder
 WORKDIR /app
-# Copia os arquivos de configuração e dependências para o contêiner
+
+# Recebe o nome do workspace vindo do compose (ex: apps/api-gateway)
+ARG WORKSPACE_PATH
+
+# Copia as configurações globais da raiz do monorepo
 COPY package*.json ./
-# Instala as dependências do projeto
-RUN npm install
-# Copia os arquivos de configuração do TypeScript e o código-fonte para o contêiner
 COPY tsconfig.json ./
-# Compila o código TypeScript para JavaScript
-COPY src ./src
-# Executa o comando de build para compilar o código TypeScript
-RUN npm run build
-# # # # # # # # # #
-# Stage 2: produção — apenas o JS compilado + deps de produção
+
+# Copia a pasta inteira do microsserviço (incluindo o src dele)
+COPY ${WORKSPACE_PATH}/ ./${WORKSPACE_PATH}/
+
+# Instala as dependências na estrutura de monorepo
+RUN npm install
+
+# Compila apenas o workspace enviado pelo argumento do compose
+RUN npm run build --workspace=${WORKSPACE_PATH}
+
+# **************************************************************** #
+# Stage 2: produção — imagem final leve                            #
+# **************************************************************** #
 FROM node:20-alpine
-# Establece o diretório de trabalho para a fase de produção
 WORKDIR /app
-# Copia os arquivos de configuração e dependências para o contêiner
+
+ARG WORKSPACE_PATH
+
 COPY package*.json ./
-# Instala apenas as dependências de produção, omitindo as dependências de desenvolvimento
 RUN npm install --omit=dev
-# Copia os arquivos compilados do estágio de construção para o estágio de produção
-COPY --from=builder /app/dist ./dist
-# Expõe a porta 3001 para que o servidor possa ser acessado externamente
+
+# Copia a pasta dist gerada dentro do workspace específico
+COPY --from=builder /app/${WORKSPACE_PATH}/dist ./dist
+
 EXPOSE 3001
-# Define o comando de entrada para iniciar o servidor Node.js
+
+# Inicia o servidor de produção apontando para a dist compilada
 CMD ["node", "dist/server.js"]
