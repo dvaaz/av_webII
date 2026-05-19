@@ -13,9 +13,9 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "fastify": "^5.8.5"
-  }
-  ,
+    "fastify": "^4.28.0"
+  },
+  
   "devDependencies": {
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.2",
