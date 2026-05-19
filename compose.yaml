@@ -1,24 +1,21 @@
-version: '3.8'
-
 services:
   product-service:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        - WORKSPACE_PATH=apps/product-service # Passa a pata correta aqui
+        - WORKSPACE_PATH=apps/product-service
     environment:
-      - PORT=3001
+      - PORT=3001 # O seu código já roda na 3001
 
   order-service:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        - WORKSPACE_PATH=apps/order-service   # Passa a pasta correta aqui
+        - WORKSPACE_PATH=apps/order-service
     environment:
-      - PORT=3001
-      - PRODUCT_SERVICE_URL=http://product-service:3001
+      - PORT=3002 # a 3002 para bater com o seu o api criado
     depends_on:
       - product-service
 
@@ -27,13 +24,13 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - WORKSPACE_PATH=apps/api-gateway    # Passa a porta aqui
+        - WORKSPACE_PATH=apps/api-gateway
     ports:
-      - "3000:3001" # Única porta exposta
+      - "3000:3001" 
     environment:
       - PORT=3001
       - PRODUCT_SERVICE=http://product-service:3001
-      - ORDER_SERVICE=http://order-service:3001
+      - ORDER_SERVICE=http://order-service:3002 # 3002
     depends_on:
       - product-service
       - order-service
