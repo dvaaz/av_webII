@@ -1,85 +1,19 @@
-## Branch EXTRA
- 
-Passo 6 — Docker e docker-compose
-Neste passo você vai containerizar todos os serviços com Docker e orquestrá-los com docker-compose. O objetivo é que todo o sistema suba com um único comando, em um ambiente isolado e reproduzível.
+# Passo X: Containerização Dinâmica com Docker e Orquestração com Docker Compose
 
-Objetivo deste passo
-Empacotar cada microserviço em uma imagem Docker e definir como os containers se comunicam entre si usando a rede interna do docker-compose.
+Neste passo, você vai containerizar todos os serviços do monorepo utilizando um **único `Dockerfile` dinâmico na raiz do projeto** e orquestrá-los com o Docker Compose (`compose.yaml`). O objetivo é otimizar a manutenção do código de infraestrutura, garantindo que todo o sistema suba com um único comando, em um ambiente isolado, padronizado e reproduzível.
 
-O que será adicionado
+### Objetivo deste passo
+Empacotar os três microsserviços reutilizando uma única receita de build (`Dockerfile`) através de argumentos de escopo de pastas (`workspaces`) e definir como os containers se comunicam entre si usando a rede interna do Docker Compose, expondo apenas a API Gateway para o mundo externo.
+
+### Estrutura de Arquivos Gerada
+Com esta abordagem, eliminamos a necessidade de múltiplos arquivos de build espalhados pelo projeto:
+
+```text
 /
-├── docker-compose.yml              ← orquestra os 3 serviços
+├── compose.yaml       ← Orquestra os 3 serviços e passa os argumentos de pasta
+├── Dockerfile         ← RECEITA ÚNICA: Build dinâmico baseado no workspace
+├── package.json       ← Gerencia os workspaces do monorepo
 └── apps/
-    ├── product-service/Dockerfile
-    ├── order-service/Dockerfile
-    └── api-gateway/Dockerfile
- 
-
-Entendendo o Dockerfile (multi-stage build)
-Todos os serviços usam o mesmo padrão de multi-stage build:
-# Stage 1: build — compila TypeScript
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY tsconfig.json ./
-COPY src ./src
-RUN npm run build
- 
-# Stage 2: produção — apenas o JS compilado + deps de produção
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install --omit=dev
-COPY --from=builder /app/dist ./dist
-EXPOSE 3001
-CMD ["node", "dist/server.js"]
-Por que dois stages?
-O stage de build instala devDependencies (TypeScript, ts-node) que não são necessárias em produção. O stage final copia apenas o dist/ compilado e instala somente as dependências de produção. A imagem final fica muito menor.
-
-Entendendo o docker-compose.yml
-Rede interna
-O docker-compose cria automaticamente uma rede privada entre os containers. Dentro dessa rede, cada serviço é acessível pelo seu nome (ex: product-service), não por localhost.
-Variáveis de ambiente por container
-order-service:
-  environment:
-    - PRODUCT_SERVICE_URL=http://product-service:3001
-Note como a URL usa product-service (nome do container) em vez de localhost. É por isso que o código usa process.env.PRODUCT_SERVICE_URL — em dev é localhost, em Docker é o nome do serviço.
-depends_on
-api-gateway:
-  depends_on:
-    - product-service
-    - order-service
-Garante que o gateway só inicia após os outros serviços estarem criados (não garante que estão prontos para receber tráfego, mas é o suficiente para este tutorial).
-
-Como executar com Docker
-# Build e inicializa todos os serviços
-docker-compose up --build
- 
-# Em outro terminal, teste o sistema completo
-curl http://localhost:3000/products
-curl http://localhost:3000/health
- 
-curl -X POST http://localhost:3000/orders \
-  -H "Content-Type: application/json" \
-  -d '{"productId": 1, "quantity": 2}'
- 
-# Para encerrar
-docker-compose down
-
-Comparativo: dev vs Docker
-Aspecto
-Desenvolvimento
-Docker
-Inicialização
-3 terminais separados
-docker-compose up
-URL entre serviços
-localhost:300X
-nome do container
-Compilação
-ts-node (direto)
-tsc → node dist/
-Isolamento
-Processo local
-Container isolado
+    ├── product-service/
+    ├── order-service/
+    └── api-gateway/
