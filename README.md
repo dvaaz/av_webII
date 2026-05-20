@@ -17,3 +17,25 @@ Com esta abordagem, eliminamos a necessidade de múltiplos arquivos de build esp
     ├── product-service/
     ├── order-service/
     └── api-gateway/
+
+### Como iniciar:
+Como executar com Docker
+# Build e inicializa todos os serviços ( @dvaaz Darley Vieira )
+
+ 1. Garante que qualquer resquício antigo de container (no Docker) seja destruído
+* docker compose down --volumes --remove-orphans
+
+ 2. Força o build do zero absoluto usando o Dockerfile único da raiz
+* docker compose build --no-cache
+
+ 3. Sobe os containers travando o terminal para chegar ao erro em tempo real
+* docker compose up
+
+ 4. Verificar os logs das APIs
+* docker compose logs api-gateway
+* docker compose logs order-service
+* docker compose logs product-service
+
+
+-- Importante lembrar que caso esteja no Windows é importante instalar e iniciar o DOCKER DESKTOP
+-- Caso esteja no Linux https://docs.docker.com/desktop/setup/install/linux/
