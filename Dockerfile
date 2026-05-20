@@ -1,3 +1,4 @@
+
 # **************************************************************** #
 # Stage 1: build — compila TypeScript baseado no workspace ativo   #
 # **************************************************************** #
@@ -10,7 +11,7 @@ ARG WORKSPACE_PATH
 # Copia as configurações globais da raiz do monorepo
 COPY package*.json ./
 COPY tsconfig.json ./
-
+# auxilio de IA
 # Copia a pasta inteira do microsserviço (incluindo o src dele)
 COPY ${WORKSPACE_PATH}/ ./${WORKSPACE_PATH}/
 
@@ -29,7 +30,11 @@ WORKDIR /app
 ARG WORKSPACE_PATH
 
 COPY package*.json ./
-RUN npm install --omit=dev
+
+# certifica que o package de cada dependencia seja lido
+COPY ${WORKSPACE_PATH}/package*.json ./${WORKSPACE_PATH}/
+
+RUN npm install
 
 # Copia a pasta dist gerada dentro do workspace específico
 COPY --from=builder /app/${WORKSPACE_PATH}/dist ./dist

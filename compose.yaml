@@ -15,7 +15,7 @@ services:
       args:
         - WORKSPACE_PATH=apps/order-service
     environment:
-      - PORT=3002 # a 3002 para bater com o seu o api criado
+      - PORT=3001 # a 3002 para bater com o seu o api criado
     depends_on:
       - product-service
 
@@ -30,7 +30,7 @@ services:
     environment:
       - PORT=3001
       - PRODUCT_SERVICE=http://product-service:3001
-      - ORDER_SERVICE=http://order-service:3002 # 3002
+      - ORDER_SERVICE=http://order-service:3001 # 3002
     depends_on:
       - product-service
       - order-service

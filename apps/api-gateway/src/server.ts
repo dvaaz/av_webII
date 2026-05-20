@@ -4,7 +4,7 @@ import httpProxy from '@fastify/http-proxy';
 const app = Fastify({ logger: true });
 
 const PRODUCT_SERVICE = process.env.PRODUCT_SERVICE ?? 'http://localhost:3001';
-const ORDER_SERVICE = process.env.ORDER_SERVICE ?? 'http://localhost:3002';
+const ORDER_SERVICE = process.env.ORDER_SERVICE ?? 'http://localhost:3001';
 
 const PORT = Number(process.env.PORT ?? 3000);
 
