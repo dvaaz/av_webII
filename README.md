@@ -38,4 +38,4 @@ Como executar com Docker
 
 
 -- Importante lembrar que caso esteja no Windows é importante instalar e iniciar o DOCKER DESKTOP
--- Caso esteja no Linux https://docs.docker.com/desktop/setup/install/linux/
+-- Caso esteja no Linux [text](https://docs.docker.com/desktop/setup/install/linux/)
