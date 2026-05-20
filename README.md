@@ -1,7 +1,7 @@
 # Passo X: Containerização Dinâmica com Docker e Orquestração com Docker Compose
 
-Neste passo, você vai containerizar todos os serviços do monorepo utilizando um **único `Dockerfile` dinâmico na raiz do projeto** e orquestrá-los com o Docker Compose (`compose.yaml`). O objetivo é otimizar a manutenção do código de infraestrutura, garantindo que todo o sistema suba com um único comando, em um ambiente isolado, padronizado e reproduzível.
-
+Neste passo, você vai containerizar todos os serviços do monorepo utilizando um **único `Dockerfile` *dinâmico* na raiz do projeto** e orquestrá-los com o Docker Compose (`compose.yaml`). O objetivo é otimizar a manutenção do código de infraestrutura, garantindo que todo o sistema suba com um único comando, em um ambiente isolado, padronizado e reproduzível.
+É importante alinhar todas as portas **dentro** de seu microserviço
 ### Objetivo deste passo
 Empacotar os três microsserviços reutilizando uma única receita de build (`Dockerfile`) através de argumentos de escopo de pastas (`workspaces`) e definir como os containers se comunicam entre si usando a rede interna do Docker Compose, expondo apenas a API Gateway para o mundo externo.
 

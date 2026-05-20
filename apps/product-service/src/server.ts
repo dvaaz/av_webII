@@ -9,7 +9,7 @@ const fastify = Fastify({
 
 // Rotas
 // Teste
-fastify.get('/t', async function handler (request, reply) {
+fastify.get('/test', async function handler (request, reply) {
     return { hello: 'world'}
 })
 
@@ -20,7 +20,7 @@ const products: Product[] = [
   { id: 3, name: 'Teclado Mecânico Sem Led', price: 400,  stock: 20 },
 ];
 
-fastify.get('/products', async () => products);
+fastify.get('/products/:id', async () => products);
 
 fastify.get<{ Params: { id: string } }>('/products/:id', async (req, reply) => {
   const product = products.find(p => p.id === Number(req.params.id));

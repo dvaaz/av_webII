@@ -44,7 +44,7 @@ fastify.post<{ Body: { productId: number; quantity: number } }>(
 
 
 try {
-    await fastify.listen({ port: 3002, host: '0.0.0.0' });
+    await fastify.listen({ port: 3001, host: '0.0.0.0' });
 } catch (e) {
     fastify.log.error(e)
     process.exit(1)
