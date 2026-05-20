@@ -447,8 +447,22 @@ api-gateway:
 Garante que o gateway só inicia após os outros serviços estarem criados (não garante que estão prontos para receber tráfego, mas é o suficiente para este tutorial).
 
 Como executar com Docker
-# Build e inicializa todos os serviços
-docker-compose up --build
+# Build e inicializa todos os serviços ( creator Dvaaz )
+
+ 1. Garante que qualquer resquício antigo de container (no Docker) seja destruído
+docker compose down --volumes --remove-orphans
+
+ 2. Força o build do zero absoluto usando o Dockerfile único da raiz
+docker compose build --no-cache
+
+ 3. Sobe os containers travando o terminal para chegar ao erro em tempo real
+docker compose up
+
+ 4. Verificar os logs (caso haja algum erro)
+* docker compose logs api-gateway
+* docker compose logs order-service
+* docker compose logs product-service
+
  
 # Em outro terminal, teste o sistema completo
 curl http://localhost:3000/products
@@ -477,6 +491,7 @@ tsc → node dist/
 Isolamento
 Processo local
 Container isolado
+
 
 
 

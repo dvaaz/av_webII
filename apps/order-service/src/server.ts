@@ -23,9 +23,9 @@ fastify.post<{ Body: { productId: number; quantity: number } }>(
     const { productId, quantity } = req.body;
    
     const productResponse = await fetch(`${PRODUCT_SERVICE_URL}/products/${productId}`);
-    if (!productResponse.ok) {
-        return reply.status(404).send({ error: 'Produto não encontrado' });
-    }
+        if (!productResponse.ok) {
+            return reply.status(404).send({ error: 'Produto não encontrado' });
+        }
 
     const product: Product = await productResponse.json();
 
